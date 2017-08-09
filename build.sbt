@@ -1,4 +1,4 @@
-name := """play-scala-starter-example"""
+name := """formBuilderServer"""
 
 version := "1.0-SNAPSHOT"
 
@@ -6,9 +6,20 @@ lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
 resolvers += Resolver.sonatypeRepo("snapshots")
 
-scalaVersion := "2.12.2"
+resolvers += "ruimo.com" at "http://static.ruimo.com/release"
+
+scalaVersion := "2.12.3"
 
 libraryDependencies += guice
 libraryDependencies += jdbc
-libraryDependencies += "org.scalatestplus.play" %% "scalatestplus-play" % "3.0.0" % Test
-libraryDependencies += "com.h2database" % "h2" % "1.4.194"
+libraryDependencies += evolutions
+libraryDependencies += "org.postgresql" % "postgresql" % "42.1.3"
+libraryDependencies += "com.h2database" % "h2" % "1.4.196" % "test"
+libraryDependencies += "com.ruimo" %% "scoins" % "1.12"
+libraryDependencies += "org.scalikejdbc" %% "scalikejdbc" % "3.0.1"
+libraryDependencies += "org.scalikejdbc" %% "scalikejdbc-config" % "3.0.1"
+libraryDependencies += "org.scalikejdbc" %% "scalikejdbc-test" % "3.0.1"
+libraryDependencies += "org.scalikejdbc" %% "scalikejdbc-play-initializer" % "2.6.0"
+libraryDependencies += specs2 % Test
+
+scalikejdbcSettings
