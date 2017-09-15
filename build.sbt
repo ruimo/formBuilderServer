@@ -13,6 +13,7 @@ scalaVersion := "2.12.3"
 libraryDependencies += guice
 libraryDependencies += jdbc
 libraryDependencies += evolutions
+libraryDependencies += "com.ruimo" %% "graphics" % "1.2"
 libraryDependencies += "org.postgresql" % "postgresql" % "42.1.3"
 libraryDependencies += "com.h2database" % "h2" % "1.4.196" % "test"
 libraryDependencies += "com.ruimo" %% "scoins" % "1.12"

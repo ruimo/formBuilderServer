@@ -13,10 +13,6 @@ import com.ruimo.scoins.LoanPattern._
 import com.ruimo.scoins.LoanPattern
 import models.User
 
-/**
- * This controller creates an `Action` to handle HTTP requests to the
- * application's home page.
- */
 @Singleton
 class HomeController @Inject()(
   cc: ControllerComponents,
@@ -27,7 +23,13 @@ class HomeController @Inject()(
   def index = Action {
     val users = sql"select * from users".toMap.list.apply()
 println("users: " + users)
+
     Ok(views.html.index("Your new application is ready."))
+  }
+
+  def post = Action {
+    println("HomeController.post")
+    Ok("")
   }
 
   def skewCorrection = Action(parsers.multipartFormData) { req: Request[MultipartFormData[TemporaryFile]] =>

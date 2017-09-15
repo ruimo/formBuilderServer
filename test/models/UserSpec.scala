@@ -1,5 +1,6 @@
 package models
 
+import helpers.{PasswordHash, PasswordSalt}
 import org.specs2.mutable._
 import play.api.db.Databases
 import play.api.test.Helpers
