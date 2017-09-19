@@ -8,8 +8,10 @@ import java.io.{BufferedInputStream, File, FileInputStream}
 import java.nio.file.Files
 import javax.inject._
 
+import javax.imageio.ImageIO
 import com.ruimo.graphics.adapter.{Ocr, OcrResult, RotateImage}
-import com.ruimo.graphics.twodim.Crop
+import com.ruimo.graphics.twodim.{Crop, Area, BlackEdgeSearchStrategy}
+import com.ruimo.scoins.Percent
 import play.api.libs.Files.TemporaryFile
 import play.api.libs.Files.TemporaryFileCreator
 import play.api.libs.json.{JsArray, JsObject, JsValue, Json}
@@ -117,8 +119,20 @@ class PrepareController @Inject()(
 
     val crop = (config \ "crop")
     if ((crop \ "enabled").as[Boolean]) {
-      val topArea = (crop \ "top")
-println("topArea = " + topArea)
+      val top = (crop \ "top").as[Array[Double]]
+      val bottom = (crop \ "bottom").as[Array[Double]]
+      val left = (crop \ "left").as[Array[Double]]
+      val right = (crop \ "right").as[Array[Double]]
+
+      def toArea(ar: Array[Double]) = Area(
+        Percent(ar(0)), Percent(ar(1)), Percent(ar(2)), Percent(ar(3))
+      )
+
+      val cropped = Crop.edgeCrop(
+        toArea(left), toArea(top), toArea(right), toArea(bottom),
+        ImageIO.read(inFile.toFile), BlackEdgeSearchStrategy(253)
+      )
+      ImageIO.write(cropped, "png", inFile.toFile)
     }
 
     val fileToServe: Path = Files.createTempFile(null, null)
