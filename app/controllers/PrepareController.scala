@@ -62,78 +62,85 @@ class PrepareController @Inject()(
     Ok("")
   }
 
-  def perform = Action(parse.temporaryFile) { req: Request[TemporaryFile] =>
-    val dir = Files.createTempDirectory(null);
-    Zip.explode(req.body.path, dir)
-    
-    println("dir: " + dir)
-    val config: JsValue = Json.parse(Files.readAllBytes(dir.resolve("config.json")))
-    println("config: " + config)
-    val inputFiles = (config \ "inputFiles").as[Seq[String]]
-    val inFile = dir.resolve(inputFiles(0))
-    val skewCorrection = (config \ "skewCorrection")
-
-    val skewResult: Option[SkewCorrectionResult] =
-      if ((skewCorrection \ "enabled").as[Boolean]) {
-        val maxAngleToDetect = (skewCorrection \ "maxAngleToDetect").as[Double]
-        val range: imm.Seq[Range] =
-          if ((skewCorrection \ "direction").as[String] == "vertical") {
-            imm.Seq(
-              Range(min = toRadian(-maxAngleToDetect), max = toRadian(maxAngleToDetect)),
-              Range(min = toRadian(180 - maxAngleToDetect), max = Pi)
-            )
-          }
-          else {
-            imm.Seq(
-              Range(min = toRadian(90 - maxAngleToDetect / 2), max = toRadian(90 + maxAngleToDetect / 2))
-            )
-          }
-
-        val found: imm.IndexedSeq[FoundLine] = Hugh.perform(
-          inFile, 3000, 200, thRange = range
-        )
-        val lineCount = (skewCorrection \ "lineCount").as[Int]
-        val taken = found.take(lineCount)
-        println("found: " + taken)
-        val ave = average(taken)
-        println("average: " + ave)
-
-        if (ave.abs < 1) {
-          // Horizontal skew correction
-          Logger.info("Horizontal skew correction angle: " + -ave)
-          RotateImage.perform(inFile, -ave)
+  private[controllers] def performSkewCorrection(
+    inputFile: Path, skewCorrection: JsLookupResult
+  ): Option[SkewCorrectionResult] =
+    if ((skewCorrection \ "enabled").as[Boolean]) {
+      val maxAngleToDetect = (skewCorrection \ "maxAngleToDetect").as[Double]
+      val range: imm.Seq[Range] =
+        if ((skewCorrection \ "direction").as[String] == "vertical") {
+          imm.Seq(
+            Range(min = toRadian(-maxAngleToDetect), max = toRadian(maxAngleToDetect)),
+            Range(min = toRadian(180 - maxAngleToDetect), max = Pi)
+          )
         }
         else {
-          // Vertical skew correction
-          val verticalAngle = if (ave < 0) ave + Pi / 2 else ave - Pi / 2
-          Logger.info("Horizontal skew correction angle: " + -verticalAngle)
-          RotateImage.perform(inFile, -verticalAngle)
-        }
-        Some(
-          SkewCorrectionResult(
-            foundLines = taken
+          imm.Seq(
+            Range(min = toRadian(90 - maxAngleToDetect / 2), max = toRadian(90 + maxAngleToDetect / 2))
           )
-        )
-      }
-      else None
+        }
 
-    val crop = (config \ "crop")
+      val found: imm.IndexedSeq[FoundLine] = Hugh.perform(
+        inputFile, 3000, 200, thRange = range
+      )
+      val lineCount = (skewCorrection \ "lineCount").as[Int]
+      val taken = found.take(lineCount)
+      println("found: " + taken)
+      val ave = average(taken)
+      println("average: " + ave)
+
+      if (ave.abs < 1) {
+        // Horizontal skew correction
+        Logger.info("Horizontal skew correction angle: " + -ave)
+        RotateImage.perform(inputFile, -ave)
+      }
+      else {
+        // Vertical skew correction
+        val verticalAngle = if (ave < 0) ave + Pi / 2 else ave - Pi / 2
+        Logger.info("Horizontal skew correction angle: " + -verticalAngle)
+        RotateImage.perform(inputFile, -verticalAngle)
+      }
+      Some(
+        SkewCorrectionResult(
+          foundLines = taken
+        )
+      )
+    }
+    else None
+
+  private[controllers] def toArea(ar: Array[Double]) = Area(
+    Percent(ar(0)), Percent(ar(1)), Percent(ar(2)), Percent(ar(3))
+  )
+
+  private[controllers] def performCrop(inputFile: Path, crop: JsLookupResult) {
     if ((crop \ "enabled").as[Boolean]) {
       val top = (crop \ "top").as[Array[Double]]
       val bottom = (crop \ "bottom").as[Array[Double]]
       val left = (crop \ "left").as[Array[Double]]
       val right = (crop \ "right").as[Array[Double]]
 
-      def toArea(ar: Array[Double]) = Area(
-        Percent(ar(0)), Percent(ar(1)), Percent(ar(2)), Percent(ar(3))
-      )
-
       val cropped = Crop.edgeCrop(
         toArea(left), toArea(top), toArea(right), toArea(bottom),
-        ImageIO.read(inFile.toFile), BlackEdgeSearchStrategy(253)
+        ImageIO.read(inputFile.toFile), BlackEdgeSearchStrategy(253)
       )
-      ImageIO.write(cropped, "png", inFile.toFile)
+      ImageIO.write(cropped, "png", inputFile.toFile)
     }
+  }
+
+  def perform = Action(parse.temporaryFile) { req: Request[TemporaryFile] =>
+    val dir = Files.createTempDirectory(null);
+    Zip.explode(req.body.path, dir)
+    println("dir: " + dir)
+
+    val config: JsValue = Json.parse(Files.readAllBytes(dir.resolve("config.json")))
+    println("config: " + config)
+    val inputFiles = (config \ "inputFiles").as[Seq[String]]
+    val inFile = dir.resolve(inputFiles(0))
+    val skewCorrection = (config \ "skewCorrection")
+    val crop = (config \ "crop")
+
+    val skewResult: Option[SkewCorrectionResult] = performSkewCorrection(inFile, skewCorrection)
+    performCrop(inFile, crop)
 
     val fileToServe: Path = Files.createTempFile(null, null)
     val resp = new JsObject(
