@@ -14,7 +14,7 @@ case class User(
   createdAt: Long
 ) {
   def isPasswordValid(password: String): Boolean = {
-    PasswordHash.generate(password, salt) == hash.value
+    PasswordHash.generate(password, salt).value == hash.value
   }
 }
 
