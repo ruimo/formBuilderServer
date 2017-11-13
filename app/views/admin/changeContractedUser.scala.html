@@ -1,0 +1,55 @@
+@(
+  myForm: Form[CreateContractedUser]
+)(
+  implicit request: MessagesRequest[AnyContent],
+  flash: play.api.mvc.Flash,
+  login: LoginSession
+)
+
+@import helper._
+
+@form(action = CSRF(routes.ContractedUserMaintenance.create()), 'id -> "createContractedUserForm") {
+  <table id="createContractedUser">
+    <tr class="contractPlan">
+      <td class="header">@Messages("contractPlan")</td>
+      <td class="body">
+        <input type="hidden" id="contractPlanId" name="planId" class="planId">
+        <span id="contractPlanName"></span>
+        <button type="button" class="selectButton">...</button>
+      </td>
+    </tr>
+    <tr class="user">
+      <td class="header">@Messages("user")</td>
+      <td class="body">
+        <input type="hidden" id="userId" name="userId" class="userId">
+        <span id="userName"></span>
+        <button type="button" class="selectButton">...</button>
+      </td>
+    </tr>
+    <tr class="contractFrom">
+      <td class="header">@Messages("contractFrom")</td>
+      <td class="body">
+        @inputText(
+          myForm("contractFrom")
+        )(
+          FieldConstructor(simpleField.f), implicitly
+        )
+      </td>
+    </tr>
+    <tr class="contractTo">
+      <td class="header">@Messages("contractTo")</td>
+      <td class="body">
+        @inputText(
+          myForm("contractTo")
+        )(
+          FieldConstructor(simpleField.f), implicitly
+        )
+      </td>
+    </tr>
+    <tr class="action">
+      <td colspan="2">
+        <input type="submit" value='@Messages("create", Messages("contractedUser"))'>
+      </td>
+    </tr>
+  </table>
+}

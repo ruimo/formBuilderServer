@@ -1,0 +1,66 @@
+@(
+  myForm: Form[CreateContractPlan],
+  title: String,
+  submit: play.api.mvc.Call
+)(
+  implicit request: MessagesRequest[AnyContent],
+  flash: play.api.mvc.Flash,
+  login: LoginSession
+)
+
+@import helper._
+
+@main(title, Some(login)) {
+} {
+  <div class="title">@title</div>
+
+  @flash.get("errorMessage").map { message =>
+    <div class="globalErrorMessage">
+      @message
+    </div>
+  }
+
+  @flash.get("message").map { message =>
+    <div class="message">
+      @message
+    </div>
+  }
+
+  @if(myForm.hasErrors) {
+    <div class="globalErrorMessage">
+      @Messages("inputError")
+    </div>
+  }
+
+  @myForm.error("duplicate").map { fe =>
+    <div class="globalErrorMessage">
+      @fe.messages
+    </div>
+  }
+
+  @form(action = CSRF(submit), 'id -> "createContractPlanForm") {
+    @inputText(
+      myForm("planName"),
+      '_label -> Messages("planName"), 'size -> 32, 'maxlength -> 256
+    )
+
+    @inputText(
+      myForm("maxFormFormat"),
+      '_label -> Messages("max", Messages("formFormatCount")), 'size -> 8, 'maxlength -> 16
+    )
+
+    @checkbox(
+      myForm("deprecated"), '_showConstraints -> false, '_label -> Messages("deprecated")
+    )
+
+    <input type="submit" id="createContractPlan" value=@Messages("register")>
+  }
+
+  <div class="menuPanel">
+    <a class="backLink" href="@routes.ContractPlanMaintenance.index()">
+      @Messages("backTo", Messages("maintenance", Messages("contractPlan")))
+    </a>
+
+    @admin.backToAdminTop()
+  </div>
+}

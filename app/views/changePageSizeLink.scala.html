@@ -1,0 +1,17 @@
+@(
+  list: PagedRecords[_],
+  pageSize: Int,
+  pageLink: (Int, Int, String) => play.api.mvc.Call
+)(
+  implicit request: MessagesRequest[AnyContent]
+)
+<span class="pageSize">
+  @if(list.pageSize == pageSize) {
+    @pageSize
+  } else {
+    <a href="javascript:void(0)"
+       onclick="location.href='@pageLink(0, pageSize, list.orderBy.toString)'">
+      @pageSize
+    </a>
+  }
+</span>

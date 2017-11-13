@@ -1,0 +1,52 @@
+@(
+  myForm: Form[models.LoginUser],
+  uri: String
+)(
+  implicit request: MessagesRequest[AnyContent],
+  flash: play.api.mvc.Flash
+)
+
+@main(Messages("loginTitle"), None) {
+} {
+  <h1 class="title">@Messages("loginTitle")</h1>
+
+  @flash.get("errorMessage").map { message =>
+    <div class="globalErrorMessage">
+      @message
+    </div>
+  }
+
+  @flash.get("message").map { message =>
+    <div class="message">
+      @message
+    </div>
+  }
+
+  @if(myForm.hasErrors) {
+    <div class="globalErrorMessage">
+      @Messages("inputError")
+    </div>
+  }
+
+  @myForm.globalErrors.map { e =>
+    <div class="globalErrorMessage">
+      @e.message
+    </div>
+  }
+
+  @helper.form(action = helper.CSRF(routes.Admin.login()), 'id -> "loginForm") {
+    @helper.inputText(
+      myForm("userName"),
+      '_label -> Messages("userName"), 'size -> 20
+    )
+
+    @helper.inputPassword(
+      myForm("password"),
+      '_label -> Messages("password"), 'size -> 20
+    )
+
+    <input type="hidden" name="uri" value="@uri">
+
+    <input type="submit" id="doLoginButton" value='@Messages("login")'>
+  }
+}

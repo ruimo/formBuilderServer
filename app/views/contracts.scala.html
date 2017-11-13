@@ -1,0 +1,75 @@
+@import java.time.format.DateTimeFormatter
+
+@(
+  contractedUsers: PagedRecords[(User, ContractPlan, ContractedUser)],
+  dateTimeFormatter: DateTimeFormatter
+)(
+  implicit flash: play.api.mvc.Flash,
+  request: MessagesRequest[AnyContent],
+  loginSession: LoginSession
+)
+
+@main(Messages("currentContract"), Some(loginSession)) {
+} {
+  <h2 class="title">@Messages("currentContract")</h2>
+
+  @if(contractedUsers.isEmpty) {
+    @Messages("recordEmpty", Messages("contract"))
+  } else {
+    <table class="contractTable paged">
+      <tr class="header">
+        <th class="name">
+          @Messages("contractedUserId")
+        </th>
+        <th class="name">
+          @orderMark(
+            Messages("planName"),
+            routes.Contracts.index,
+            "contract_plan.plan_name", contractedUsers
+          )
+        </th>
+        <th class="contractFrom">
+          @orderMark(
+            Messages("contractFrom"),
+            routes.Contracts.index,
+            "contract_plan.contract_from", contractedUsers
+          )
+        </th>
+        <th class="contractTo">
+          @orderMark(
+            Messages("contractTo"),
+            routes.Contracts.index,
+            "contract_plan.contract_to", contractedUsers
+          )
+        </th>
+      </tr>
+      @contractedUsers.records.map { cu =>
+        <tr class="body">
+          <td class="contractedUserId">
+            @cu._3.id.get.value
+          </td>
+          <td class="name">
+            @cu._2.planName
+          </td>
+          <td class="contractFrom">
+            @dateTimeFormatter.format(cu._3.contractFrom.atZone(java.time.ZoneId.systemDefault()))
+          </td>
+          <td class="contractTo">
+            @dateTimeFormatter.format(cu._3.contractTo.atZone(java.time.ZoneId.systemDefault()))
+          </td>
+        </tr>
+      }
+      <tr>
+        <td colspan="4">
+          <div class="pagingPanelCell">
+          @pagingPanel(
+            contractedUsers,
+            routes.Contracts.index,
+            10, 25, 50
+          )
+          </div>
+        </td>
+      <tr>
+    </table>
+  }
+}

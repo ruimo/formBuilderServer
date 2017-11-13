@@ -1,0 +1,41 @@
+@(
+)(
+  implicit request: MessagesRequest[AnyContent],
+  flash: play.api.mvc.Flash,
+  login: LoginSession
+)
+
+@main(Messages("adminTop"), Some(login)) {
+} {
+  <div class="title">@Messages("adminTop")</div>
+
+  @flash.get("errorMessage").map { message =>
+    <div class="globalErrorMessage">
+      @message
+    </div>
+  }
+
+  @flash.get("message").map { message =>
+    <div class="message">
+      @message
+    </div>
+  }
+
+  <a class="menuItem" href="@routes.UserMaintenance.index">
+    <div>
+      @Messages("maintenance", Messages("user"))
+    </div>
+  </a>
+
+  <a class="menuItem" href="@routes.ContractPlanMaintenance.index">
+    <div>
+      @Messages("maintenance", Messages("contractPlan"))
+    </div>
+  </a>
+
+  <a class="menuItem" href="@routes.ContractedUserMaintenance.edit">
+    <div>
+      @Messages("maintenance", Messages("contractedUser"))
+    </div>
+  </a>
+}

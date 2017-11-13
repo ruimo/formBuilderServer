@@ -16,9 +16,8 @@ import play.api.libs.Files.TemporaryFile
 import play.api.libs.Files.TemporaryFileCreator
 import play.api.libs.json.{JsArray, JsObject, JsValue, Json}
 import play.api.mvc._
-import scalikejdbc._
 import com.ruimo.scoins.LoanPattern._
-import models.User
+import models._
 import akka.util.ByteString
 import com.ruimo.graphics.twodim.Hugh
 import com.ruimo.graphics.twodim.Hugh.FoundLine
@@ -29,19 +28,21 @@ import scala.collection.{immutable => imm}
 import com.ruimo.graphics.twodim.Range
 
 import scala.collection.immutable.IndexedSeq
+import play.api.db.Database
 
 case class SkewCorrectionResult(
   foundLines: imm.Seq[FoundLine]
 )
 
+// This is non-standard API and will change without any notice.
 @Singleton
 class PrepareController @Inject()(
   cc: ControllerComponents,
   parsers: PlayBodyParsers,
-  tempFileCreator: TemporaryFileCreator
-) extends AbstractController(cc) {
-  implicit val session = AutoSession
-
+  tempFileCreator: TemporaryFileCreator,
+  db: Database,
+  implicit val applicationTokenRepo: ApplicationTokenRepo
+) extends AbstractController(cc) with ApplicationTokenAware {
   def average(lines: IndexedSeq[FoundLine]): Double = {
     val (totalCount: Long, thSum: Double) = lines.foldLeft((0L, 0.0)) { (sum, e) =>
       (
@@ -126,77 +127,97 @@ class PrepareController @Inject()(
   }
 
   def perform = Action(parse.temporaryFile) { req: Request[TemporaryFile] =>
+    Logger.info("PrepareController.perform() called.")
     PathUtil.withTempDir(None) { dir =>
       Zip.explode(req.body.path, dir)
-      println("dir: " + dir)
 
       val config: JsValue = Json.parse(Files.readAllBytes(dir.resolve("config.json")))
       println("config: " + config)
-      val inputFiles = (config \ "inputFiles").as[Seq[String]]
-      val inFile = dir.resolve(inputFiles(0))
-      val skewCorrection = (config \ "skewCorrection")
-      val crop = (config \ "crop")
 
-      val skewResult: Option[SkewCorrectionResult] = performSkewCorrection(inFile, skewCorrection)
-      val skewCorrectedFile = Files.createTempFile(dir, null, null)
-      Files.copy(inFile, skewCorrectedFile, StandardCopyOption.REPLACE_EXISTING)
-      val cropFailed: Boolean = try {
-        performCrop(inFile, crop)
-        false
-      }
-      catch {
-        case e: IllegalStateException =>
-          e.printStackTrace()
-          true
-        case t: Throwable => throw t
-      }
+      try {
+        val isAuthenticated: Boolean = db.withConnection { implicit conn =>
+          isApplicationTokenValid((config \ "auth").as[JsObject])
+        }
 
-      val fileToServe: Path = Files.createTempFile(null, null)
-      val resp = new JsObject(
-        skewResult.map { r =>
-          Map(
-            "skewCorrection" -> Json.obj(
-              "foundLines" -> JsArray(
-                r.foundLines.map { line =>
-                  Json.obj(
-                    "ro" -> line.ro,
-                    "th" -> line.th
+        println("isAuthenticated: " + isAuthenticated)
+        if (isAuthenticated) {
+          val inputFiles = (config \ "inputFiles").as[Seq[String]]
+          val inFile = dir.resolve(inputFiles(0))
+          val skewCorrection = (config \ "skewCorrection")
+          val crop = (config \ "crop")
+
+          val skewResult: Option[SkewCorrectionResult] = performSkewCorrection(inFile, skewCorrection)
+          val skewCorrectedFile = Files.createTempFile(dir, null, null)
+          Files.copy(inFile, skewCorrectedFile, StandardCopyOption.REPLACE_EXISTING)
+          val cropFailed: Boolean = try {
+            performCrop(inFile, crop)
+            false
+          }
+          catch {
+            case e: IllegalStateException =>
+              e.printStackTrace()
+              true
+            case t: Throwable => throw t
+          }
+
+          val fileToServe: Path = Files.createTempFile(null, null)
+          val resp = new JsObject(
+            skewResult.map { r =>
+              Map(
+                "skewCorrection" -> Json.obj(
+                  "foundLines" -> JsArray(
+                    r.foundLines.map { line =>
+                      Json.obj(
+                        "ro" -> line.ro,
+                        "th" -> line.th
+                      )
+                    }
+                  ),
+                  "correctedFiles" -> JsArray(Seq(JsString(skewCorrectedFile.getFileName.toString)))
+                )
+              )
+            }.getOrElse(Map()) ++ (
+              if ((crop \ "enabled").as[Boolean]) Map(
+                "crop" -> (
+                  if (cropFailed) Json.obj(
+                    "status" -> "CannotFindEdge"
                   )
-                }
-              ),
-              "correctedFiles" -> JsArray(Seq(JsString(skewCorrectedFile.getFileName.toString)))
+                  else Json.obj(
+                    "status" -> "Success",
+                    "correctedFiles" -> JsArray(Seq(JsString(inFile.getFileName.toString)))
+                  )
+                )
+              )
+              else Map()
             )
           )
-        }.getOrElse(Map()) ++ (
-          if ((crop \ "enabled").as[Boolean]) Map(
-            "crop" -> (
-              if (cropFailed) Json.obj(
-                "status" -> "CannotFindEdge"
-              )
-              else Json.obj(
-                "status" -> "Success",
-                "correctedFiles" -> JsArray(Seq(JsString(inFile.getFileName.toString)))
+          println("resp: " + resp)
+          LoanPattern.using(Files.createTempFile(null, null)) { respFile =>
+            Files.write(respFile, resp.toString.getBytes("utf-8"))
+
+            Zip.deflate(
+              fileToServe,
+              Seq(
+                "response.json" -> respFile,
+                skewCorrectedFile.getFileName.toString -> skewCorrectedFile,
+                inFile.getFileName.toString -> inFile
               )
             )
-          )
-          else Map()
-        )
-      )
-      println("resp: " + resp)
-      LoanPattern.using(Files.createTempFile(null, null)) { respFile =>
-        Files.write(respFile, resp.toString.getBytes("utf-8"))
+          } (f => Files.delete(f)).get
 
-        Zip.deflate(
-          fileToServe,
-          Seq(
-            "response.json" -> respFile,
-            skewCorrectedFile.getFileName.toString -> skewCorrectedFile,
-            inFile.getFileName.toString -> inFile
-          )
-        )
-      } (f => Files.delete(f)).get
-
-      Ok.sendPath(fileToServe, onClose = () => Files.delete(fileToServe))
+          Ok.sendPath(fileToServe, onClose = () => Files.delete(fileToServe))
+        }
+        else {
+          Forbidden("Application token does not match.")
+        }
+      } catch {
+        case e: ApplicationTokenInvalidException =>
+          Logger.error("Invalid application token.", e)
+          Forbidden(e.getMessage)
+        case t: Throwable =>
+          Logger.error("Unknown error.", t)
+          throw t
+      }
     }.get
   }
 }

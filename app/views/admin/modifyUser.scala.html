@@ -1,0 +1,13 @@
+@(
+  myForm: Form[CreateUser],
+  fc: FormConstraints,
+  roleDropDown: Seq[(String, String)],
+  submit: play.api.mvc.Call
+)(
+  implicit request: MessagesRequest[AnyContent],
+  flash: play.api.mvc.Flash,
+  login: LoginSession
+)
+
+@admin.changeUser(myForm, fc, roleDropDown, Messages("edit", Messages("user")), submit)
+

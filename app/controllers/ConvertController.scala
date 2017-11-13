@@ -17,9 +17,8 @@ import play.api.libs.Files.TemporaryFile
 import play.api.libs.Files.TemporaryFileCreator
 import play.api.libs.json.{JsArray, JsObject, JsValue, Json}
 import play.api.mvc._
-import scalikejdbc._
 import com.ruimo.scoins.LoanPattern._
-import models.User
+import models.{ApplicationTokenRepo, User}
 import akka.util.ByteString
 import com.ruimo.graphics.twodim.Hugh
 import com.ruimo.graphics.twodim.Hugh.FoundLine
@@ -28,18 +27,22 @@ import com.ruimo.graphics.twodim.Degree.toRadian
 import scala.math.Pi
 import scala.collection.{immutable => imm}
 import com.ruimo.graphics.twodim.Range
+import play.api.db.Database
 
 import scala.collection.immutable.IndexedSeq
 
+// This is non-standard API and will change without any notice.
 @Singleton
 class ConvertController @Inject()(
   cc: ControllerComponents,
   parsers: PlayBodyParsers,
-  tempFileCreator: TemporaryFileCreator
-) extends AbstractController(cc) {
-  implicit val session = AutoSession
-
+  tempFileCreator: TemporaryFileCreator,
+  db: Database,
+  implicit val applicationTokenRepo: ApplicationTokenRepo
+) extends AbstractController(cc) with ApplicationTokenAware {
   private[this] def pdfToPng(file: Path, workDir: Path, outPrefix: String): Int = {
+    import scala.language.postfixOps
+
     Files.createDirectories(workDir.resolve(outPrefix).getParent())
     val cmd = "pdfimages -png " + file.toAbsolutePath + " " + outPrefix
     val rc = (
@@ -58,7 +61,7 @@ class ConvertController @Inject()(
 
   def tifToPng(file: Path, workDir: Path): (Int, Path) = {
     val fileName = file.getFileName.toString
-    val pngFile: Path = file.resolveSibling(fileName + ".tif.png")
+    val pngFile: Path = file.resolveSibling(fileName + ".png")
     val rc = tifToPng(file, pngFile, workDir)
 
     if (rc == 0) {
@@ -68,6 +71,8 @@ class ConvertController @Inject()(
   }
 
   private[this] def tifToPng(file: Path, toFile: Path, workDir: Path): Int = {
+    import scala.language.postfixOps
+
     val fileName = file.getFileName.toString
     Files.createDirectories(toFile.getParent())
     val cmd = "convert " + file.toAbsolutePath + " " + toFile.toAbsolutePath
@@ -86,47 +91,77 @@ class ConvertController @Inject()(
   }
 
   def perform = Action(parse.temporaryFile) { req: Request[TemporaryFile] =>
+    Logger.info("ConvertController.perform() called.")
     PathUtil.withTempDir(None) { dir =>
       val file: Path = req.body.path
-      val fileName: String = file.getFileName.toString.toLowerCase
+      Zip.explode(req.body.path, dir)
+      val config: JsValue = Json.parse(Files.readAllBytes(dir.resolve("config.json")))
+      println("config: " + config)
 
-      if (fileName.endsWith(".pdf")) {
-        PathUtil.withTempDir(None) { out =>
-          pdfToPng(file, out, fileName) match {
-            case 0 =>
-              val fileToServe = Files.createTempFile(null, ".zip")
-              Zip.deflate(
-                fileToServe,
-                Files.list(out).toArray(size => new Array[Path](size)).toSeq.map { e =>
-                  e.getFileName.toString -> e
-                }
-              )
-              Ok.sendPath(fileToServe, onClose = () => Files.delete(fileToServe))
-            case rc =>
-              BadRequest("Cannot convert pdf to png (rc = " + rc + ")")
+      try {
+        val isAuthenticated: Boolean = db.withConnection { implicit conn =>
+          isApplicationTokenValid((config \ "auth").as[JsObject])
+        }
+
+        println("isAuthenticated: " + isAuthenticated)
+
+        if (isAuthenticated) {
+          val inputFile = (config \ "inputFile").as[String]
+          val inFile = dir.resolve(inputFile)
+          val fileName: String = inFile.getFileName.toString.toLowerCase
+
+          if (fileName.endsWith(".pdf")) {
+            PathUtil.withTempDir(None) { out =>
+              pdfToPng(inFile, out, fileName) match {
+                case 0 =>
+                  val fileToServe = Files.createTempFile(null, ".zip")
+                  Zip.deflate(
+                    fileToServe,
+                    Files.list(out).toArray(size => new Array[Path](size)).toSeq.map { e =>
+                      e.getFileName.toString -> e
+                    }
+                  )
+                  Ok.sendPath(fileToServe, onClose = () => Files.delete(fileToServe))
+                case rc =>
+                  Logger.error("Cannot convert pdf to png (rc = " + rc + ")")
+                  BadRequest("Cannot convert pdf to png (rc = " + rc + ")")
+              }
+            }.get
           }
-        }.get
-      }
-      else if (fileName.endsWith(".tif") || fileName.endsWith(".tiff")) {
-        PathUtil.withTempDir(None) { out =>
-          val (rc: Int, pngFile: Path) = tifToPng(file, out)
-          rc match {
-            case 0 =>
-              val fileToServe = Files.createTempFile(null, ".zip")
-              Zip.deflate(
-                fileToServe,
-                Files.list(out).toArray(size => new Array[Path](size)).toSeq.map { e =>
-                  e.getFileName.toString -> e
-                }
-              )
-              Ok.sendPath(fileToServe, onClose = () => Files.delete(fileToServe))
-            case rc =>
-              BadRequest("Cannot convert tif to png (rc = " + rc + ")")
+          else if (fileName.endsWith(".tif") || fileName.endsWith(".tiff")) {
+            PathUtil.withTempDir(None) { out =>
+              val (rc: Int, pngFile: Path) = tifToPng(inFile, out)
+              rc match {
+                case 0 =>
+                  val fileToServe = Files.createTempFile(null, ".zip")
+                  Zip.deflate(
+                    fileToServe,
+                    Seq(
+                      pngFile.getFileName.toString -> pngFile
+                    )
+                  )
+                  Ok.sendPath(fileToServe, onClose = () => Files.delete(fileToServe))
+                case rc =>
+                  Logger.error("Cannot convert pdf to png (rc = " + rc + ")")
+                  BadRequest("Cannot convert tif to png (rc = " + rc + ")")
+              }
+            }.get
           }
-        }.get
-      }
-      else {
-        BadRequest("Invalid file type. PDF/TIF are supported")
+          else {
+            Logger.error("Invalid file type. PDF/TIF are supported '" + fileName + "'")
+            BadRequest("Invalid file type. PDF/TIF are supported '" + fileName + "'")
+          }
+        }
+        else {
+          Forbidden("Application token does not match.")
+        }
+      } catch {
+        case e: ApplicationTokenInvalidException =>
+          Logger.error("Invalid application token.", e)
+          Forbidden(e.getMessage)
+        case t: Throwable =>
+          Logger.error("Unknown error.", t)
+          throw t
       }
     }.get
   }

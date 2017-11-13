@@ -1,0 +1,69 @@
+@(
+  plans: PagedRecords[ContractPlan]
+)(
+  implicit request: MessagesRequest[AnyContent],
+  flash: play.api.mvc.Flash,
+  login: LoginSession
+)
+
+@import helper._
+
+<!DOCTYPE html>
+<html>
+  <head>
+    @commonHeader()
+    <link rel="stylesheet" media="screen" href="@routes.Assets.versioned("stylesheets/main.css")">
+  </head>
+  <body style="background: white;">
+    <table class="contractPlanTable paged">
+      <tr class="header">
+        <th class="id">
+          @orderMark(
+            "id",
+            routes.ContractedUserMaintenance.selectContractPlan,
+            "contract_plan.contract_plan_id", plans
+          )
+        </th>
+        <th class="planName">
+          @orderMark(
+            Messages("planName"),
+            routes.ContractedUserMaintenance.selectContractPlan,
+            "contract_plan.plan_name", plans
+          )
+        </th>
+        <th class="maxFormFormat">
+          @orderMark(
+            Messages("max", Messages("formFormatCount")),
+            routes.ContractedUserMaintenance.selectContractPlan,
+            "contract_plan.max_form_format", plans
+          )
+        </th>
+        <th></th>
+      </tr>
+      @plans.records.map { plan =>
+        <tr class="body">
+          <td class="id">@plan.id.get.value</td>
+          <td class="planName">@plan.planName</td>
+          <td class="maxFormFormat">@plan.maxFormFormat</td>
+          <td class="action">
+            <button type="button" style="float: left;" class="selectButton"
+                    onclick='window.parent.selectContractPlan(@plan.id.get.value, "@plan.planName");'>
+              @Messages("pick")
+            </button>
+          </td>
+        </tr>
+      }
+      <tr>
+        <td colspan="4">
+          <div class="pagingPanelCell">
+            @pagingPanel(
+              plans,
+              routes.ContractedUserMaintenance.selectContractPlan,
+              10, 25, 50
+            )
+          </div>
+        </td>
+      <tr>
+    </table>
+  </body>
+</html>

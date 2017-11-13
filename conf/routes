@@ -3,13 +3,63 @@
 # ~~~~
 
 # An example controller showing a sample home page
-GET     /                           controllers.HomeController.index
+GET     /                                controllers.HomeController.index
+
+GET     /admin                           controllers.Admin.index
+GET     /startFirstSetup                 controllers.Admin.startFirstSetup
+GET     /startLogin                      controllers.Admin.startLogin(uriOnLoginSuccess: String)
+POST    /admin/login                     controllers.Admin.login
+GET     /admin/logoff                    controllers.Admin.logoff(uriOnLogoffSuccess: String)
+GET     /admin/userMaintenance           controllers.UserMaintenance.index
+GET     /admin/createUser                controllers.UserMaintenance.startCreate
+POST    /admin/createUser                controllers.UserMaintenance.create
+GET     /admin/editUser                  controllers.UserMaintenance.edit(page: Int ?= 0, pageSize: Int ?= 10, orderBySpec: String ?= "users.user_name ASC")
+GET     /admin/modifyUser                controllers.UserMaintenance.modifyStart(id: Long)
+POST    /admin/modifyUser                controllers.UserMaintenance.modify(id: Long)
+POST    /admin/deleteUser                controllers.UserMaintenance.delete(id: Long)
+
+GET     /applicationToken                controllers.ApplicationToken.index
+POST    /createApplicationToken          controllers.ApplicationToken.create
+POST    /removeToken                     controllers.ApplicationToken.remove(id: Long)
 
 + nocsrf
-POST    /prepare                    controllers.PrepareController.perform
+POST    /prepare                         controllers.PrepareController.perform
 
 + nocsrf
-POST    /capture                    controllers.CaptureController.perform
+POST    /capture                         controllers.CaptureController.perform
+
++ nocsrf
+POST    /convert                         controllers.ConvertController.perform
+
++ nocsrf
+POST    /configs                         controllers.FormConfigController.list
+
++ nocsrf
+POST    /saveConfig                      controllers.FormConfigController.save
+
++ nocsrf
+POST    /loadConfig                      controllers.FormConfigController.load
+
++ nocsrf
+POST    /removeConfig                    controllers.FormConfigController.remove
+
+GET     /contracts                       controllers.Contracts.index(page: Int ?= 0, pageSize: Int ?= 10, orderBySpec: String ?="contracted_user.contract_from")
+GET     /admin/contractPlanMaintenance   controllers.ContractPlanMaintenance.index()
+GET     /admin/createContractPlan        controllers.ContractPlanMaintenance.startCreate()
+POST    /admin/createContractPlan        controllers.ContractPlanMaintenance.create()
+GET     /admin/editContractPlan          controllers.ContractPlanMaintenance.edit(page: Int ?= 0, pageSize: Int ?= 10, orderBySpec: String ?= "contract_plan.plan_name ASC")
+GET     /admin/modifyContractPlan        controllers.ContractPlanMaintenance.modifyStart(id: Long)
+POST    /admin/modifyContractPlan        controllers.ContractPlanMaintenance.modify(id: Long)
+POST    /admin/deleteContractPlan        controllers.ContractPlanMaintenance.delete(id: Long)
+
+GET     /admin/editContractedUser        controllers.ContractedUserMaintenance.edit()
+GET     /admin/listContractedUser        controllers.ContractedUserMaintenance.list(page: Int ?= 0, pageSize: Int ?= 10, orderBySpec: String ?= "users.user_name")
+POST    /admin/deleteContractedUser      controllers.ContractedUserMaintenance.delete(planId: Long, userId: Long)
+
+GET     /admin/selectContractPlan        controllers.ContractedUserMaintenance.selectContractPlan(page: Int ?= 0, pageSize: Int ?= 10, orderBySpec: String ?= "contract_plan.plan_name")
+GET     /admin/selectUser                controllers.ContractedUserMaintenance.selectUser(page: Int ?= 0, pageSize: Int ?= 10, orderBySpec: String ?= "users.user_name")
+
+POST    /admin/createContractedUser      controllers.ContractedUserMaintenance.create()
 
 # Map static resources from the /public folder to the /assets URL path
-GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)
+GET     /assets/*file                    controllers.Assets.versioned(path="/public", file: Asset)

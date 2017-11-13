@@ -1,0 +1,92 @@
+# --- Constraints
+error.localDateTime=日付、時刻エラー
+error.date=日付エラー
+format.localDateTime=日付、時刻を {0} の形式で指定してください
+format.localDate=日付を {0} の形式で指定してください
+
+constraint.required=(必須)
+constraint.min=最小値は {0} です。
+constraint.max=最大値は {0} です
+constraint.minLength=最小の長さは {0} です。
+constraint.maxLength=最大の長さは {0} です。
+constraint.validatewith=
+constraint.password.char=パスワードは、アルファベット、数字、記号で指定してください
+
+# --- Formats
+format.date={0}
+format.numeric=数値で指定してください
+format.real=Real
+
+# --- Errors
+# 句点を最後に入れないこと。複数のエラーがある時、カンマ区切りで表示されるので不自然になる。
+error.pasword.char=アルファベット、数字、記号以外の文字は使用できません
+error.invalid=値が不適切です
+error.required=入力必須です
+error.number=数値を入力してください
+error.real=数値を入力してください
+error.real.precision=Real number value with no more than {0} digit(s) including {1} decimal(s) expected
+error.min={0} 以上の値を入力してください
+error.min.strict={0} より大きな値を入力してください
+error.max={0} 以下の値を入力してください
+error.max.strict={0} より小さな値を入力してください
+error.minLength=最小長さは {0} です
+error.maxLength=最大長さは {0} です
+error.email=正しいメールアドレスを入力してください
+error.pattern=次のパターンに従う必要があります {0}
+error.invalid.yyyymmdd=YYYYMMDDの形式で入力してください
+error.value=値が不適切です
+
+loginTitle=ログイン
+firstLogin=ログファイルを参照し、最初の管理ユーザでログインしてください
+userName=ユーザ名
+password=パスワード
+password.confirm=パスワード(確認)
+login=ログイン
+logoff=ログオフ
+admin=管理画面
+adminTop=管理画面Top
+maintenance={0}管理
+register=登録
+inputError=入力にエラーがあります
+confirmPasswordDoesNotMatch=確認用パスワードが合っていません
+userRole.ADMIN=管理ユーザ
+userRole.NORMAL=一般ユーザ
+duplicateRecord=レコードが重複しています。再度試してみてください
+role=ロール
+duplicate=既に登録されています
+created={0} が作成されました
+user=ユーザ
+edit={0}の編集
+create=新規{0}作成
+remove=削除
+backTo={0}に戻る
+adminTitle=管理画面トップ
+removeConfirmation={0}を削除してよろしいでしょうか？
+removeAlert=*** 削除すると、後から取消はできません ***
+cancel=キャンセル
+deleted={0} は削除されました
+applicationToken=アプリケーション トークン
+createdAt=作成日時
+applicationTokenDateFormat=yyyy/MM/dd hh:mm:ss
+tooManyToken={0} 個を超えるトークンを生成することはできません
+removeAlert=この操作は取消できません。
+removed={0}が削除されました
+top=トップ
+accountMenu=お客様メニュー
+currentContract=現在のご契約
+cannotLogin=ログインに失敗しました
+planName=プラン名
+contractFrom=契約開始
+contractTo=契約終了
+contractDateFormat=yyyy/MM/dd
+contract=契約
+recordEmpty={0}が見つかりません
+contractPlan=契約プラン
+max=最大{0}
+formFormatCount=フォーム数
+deprecated=廃止
+updated={0}が更新されました
+contractedUser=契約ユーザ
+select={0}を選択してください
+pick=選択
+contractedUserId=契約ユーザID

@@ -1,0 +1,39 @@
+@(
+)(
+  implicit request: MessagesRequest[AnyContent],
+  flash: play.api.mvc.Flash,
+  login: LoginSession
+)
+
+@main(Messages("maintenance", Messages("user")), Some(login)) {
+} {
+  <div class="title">@Messages("maintenance", Messages("user"))</div>
+
+  @flash.get("errorMessage").map { message =>
+    <div class="globalErrorMessage">
+      @message
+    </div>
+  }
+
+  @flash.get("message").map { message =>
+    <div class="message">
+      @message
+    </div>
+  }
+
+  <a class="menuItem" href="@routes.UserMaintenance.startCreate">
+    <div>
+      @Messages("create", Messages("user"))
+    </div>
+  </a>
+
+  <a class="menuItem" href="@routes.UserMaintenance.edit()">
+    <div>
+      @Messages("edit", Messages("user"))
+    </div>
+  </a>
+
+  <div class="menuPanel">
+    @admin.backToAdminTop()
+  </div>
+}

@@ -1,0 +1,125 @@
+@(
+  page: Int, pageSize: Int, orderBy: OrderBy,
+  plans: PagedRecords[ContractPlan]
+)(
+  implicit request: MessagesRequest[AnyContent],
+  flash: play.api.mvc.Flash,
+  login: LoginSession
+)
+
+@import helper._
+
+@main(Messages("edit", Messages("contractPlan")), Some(login)) {
+} {
+  <div class="title">@Messages("edit", Messages("contractPlan"))</div>
+
+  @flash.get("errorMessage").map { message =>
+    <div class="globalErrorMessage">
+      @message
+    </div>
+  }
+
+  @flash.get("message").map { message =>
+    <div class="message">
+      @message
+    </div>
+  }
+
+  <table class="contractPlanTable paged">
+    <tr class="header">
+      <th class="id">
+        @orderMark(
+          "id",
+          routes.ContractPlanMaintenance.edit,
+          "contract_plan.contract_plan_id", plans
+        )
+      </th>
+      <th class="planName">
+        @orderMark(
+          Messages("planName"),
+          routes.ContractPlanMaintenance.edit,
+          "contract_plan.plan_name", plans
+        )
+      </th>
+      <th class="maxFormFormat">
+        @orderMark(
+          Messages("max", Messages("formFormatCount")),
+          routes.ContractPlanMaintenance.edit,
+          "contract_plan.max_form_format", plans
+        )
+      </th>
+      <th class="deprecated">
+        @orderMark(
+          Messages("deprecated"),
+          routes.ContractPlanMaintenance.edit,
+          "contract_plan.deprecated", plans
+        )
+      </th>
+      <th></th>
+    </tr>
+    @plans.records.map { plan =>
+      <tr class="body">
+        <td class="id">
+          <a href="@routes.ContractPlanMaintenance.modifyStart(plan.id.get.value)">
+            @plan.id.get.value
+          </a>
+        </td>
+        <td class="planName">@plan.planName</td>
+        <td class="maxFormFormat">@plan.maxFormFormat</td>
+        <td class="deprecated">
+          @if(plan.deprecated) { @Messages("deprecated") } else {  }
+        </td>
+        <td class="action">
+          @form(
+            action = CSRF(routes.ContractPlanMaintenance.delete(plan.id.get.value)),
+            'id -> ("deleteContractPlan" + plan.id.get.value)
+          ) {
+          }
+          <button type="button" style="float: left;" class="deleteButton"
+                  onclick='deleteContractPlan(@plan.id.get.value, "@plan.planName");'>
+            @Messages("remove")
+          </button>
+        </td>
+      </tr>
+    }
+    <tr>
+      <td colspan="5">
+        <div class="pagingPanelCell">
+        @pagingPanel(
+          plans,
+          routes.ContractPlanMaintenance.edit,
+          10, 25, 50
+        )
+        </div>
+      </td>
+    <tr>
+  </table>
+
+  <br>
+  <div class="menuPanel">
+    @admin.backToAdminTop()
+  </div>
+  <div id="deleteConfirm" title='@Messages("removeConfirmation", Messages("contractPlan"))' style="display:none;">
+    <div>@Messages("removeConfirmation", Messages("contractPlan"))</div>
+    <div id="planNameToDelete"></div>
+    <div id="removeAlert">@Messages("removeAlert")</div>
+  </div>
+  <script>
+    var deleteContractPlan = function(id, planName) {
+      $("#planNameToDelete").text(planName);
+      $("#deleteConfirm").dialog({
+        height: "auto",
+        width: 400,
+        modal: true,
+        buttons: {
+          '@Messages("remove")': function() {
+            $('#deleteContractPlan' + id).submit();
+          },
+          '@Messages("cancel")': function() {
+            $(this).dialog("close");
+          }
+        }
+      });
+    };
+  </script>
+}

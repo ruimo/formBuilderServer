@@ -1,0 +1,116 @@
+@(
+  myForm: Form[CreateContractedUser],
+  contractDateFormat: String
+)(
+  implicit request: MessagesRequest[AnyContent],
+  flash: play.api.mvc.Flash,
+  login: LoginSession
+)
+
+@import helper._
+
+@main(Messages("maintenance", Messages("contractedUser")), Some(login)) {
+  <script src="@routes.Assets.versioned("javascripts/jquery.ui.datepicker-ja.js")" type="text/javascript"></script>
+} {
+  <div class="title">@Messages("maintenance", Messages("contractedUser"))</div>
+
+  <h2 class="heading">@Messages("contractedUser")</h2>
+
+  <iframe class="contractedUserList" src="@routes.ContractedUserMaintenance.list()">
+  </iframe>
+
+  <h2 class="heading">@Messages("create", Messages("contractedUser"))</h2>
+
+  <div id="changeContractedUser">
+    @changeContractedUser(myForm)
+  </div>
+
+  <div class="menuPanel">
+    @admin.backToAdminTop()
+  </div>
+
+  <div id="selectContractPlan" title='@Messages("contractPlan")' style="display:none;">
+    <div>@Messages("select", Messages("contractPlan"))</div>
+    <iframe class="contractPlanFrame" src="@routes.ContractedUserMaintenance.selectContractPlan()"></iframe>
+  </div>
+
+  <div id="selectUser" title='@Messages("user")' style="display:none;">
+    <div>@Messages("select", Messages("user"))</div>
+    <iframe class="userFrame" src="@routes.ContractedUserMaintenance.selectUser()"></iframe>
+  </div>
+
+  <script>
+    var selectContractPlan = function(contractPlanId, contractPlanName) {
+      $("#selectContractPlan").dialog("close");
+      $("#contractPlanId").val(String(contractPlanId));
+      $("#contractPlanName").text(contractPlanName);  
+    };
+
+    var selectUser = function(userId, userName) {
+      $("#selectUser").dialog("close");
+      $("#userId").val(String(userId));
+      $("#userName").text(userName);  
+    };
+
+    $(function() {
+      $('iframe').on('load', function(){
+        try {  
+          $(this).height(0);
+          $(this).height(this.contentWindow.document.documentElement.scrollHeight);
+        } catch (e) {
+        }
+      }).trigger('load');
+
+      var prepareEventHandler = function() {
+        $("#createContractedUserForm").submit(createContractedUser);
+        $("#contractFrom").datepicker({
+          dateFormat: 'yy/mm/dd'
+        });
+        $("#contractTo").datepicker({
+          dateFormat: 'yy/mm/dd'
+        });
+        $("#createContractedUser .contractPlan .selectButton").click(function() {
+          $("#selectContractPlan").dialog({
+            width: "70%",
+            height: $(window).height() * 0.7
+          });
+        });
+        $("#createContractedUser .user .selectButton").click(function() {
+          $("#selectUser").dialog({
+            width: "70%",
+            height: $(window).height() * 0.7
+          });
+        });
+      };
+
+      prepareEventHandler();
+
+      var createContractedUser = function(e) {
+        var restoreContent = function(content) {
+          var wrap = $("#changeContractedUser").empty();
+          wrap.empty();
+          wrap.append(content);
+          prepareEventHandler();
+        };
+
+        e.preventDefault();
+        var form = $(this);
+        $.ajax({
+          url: form.prop('action'),
+          type: form.prop('method'),
+          data: form.serialize(),
+          dataType: 'text',
+          success: function(data, status, jqXhr) {
+            restoreContent(data);
+          },
+          error: function(jqXhr, status, error) {
+            restoreContent(jqXhr.responseText);
+          }
+        });
+      };
+
+      $("#createContractedUserForm").submit(createContractedUser);
+    });
+  </script>
+}
+  

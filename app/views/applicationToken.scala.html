@@ -1,0 +1,73 @@
+@import java.time.format.DateTimeFormatter
+
+@(
+  list: Seq[models.ApplicationToken],
+  dateTimeFormatter: DateTimeFormatter
+)(
+  implicit flash: play.api.mvc.Flash,
+  request: MessagesRequest[AnyContent],
+  loginSession: LoginSession
+)
+
+@import helper._
+
+@main(Messages("applicationToken"), Some(loginSession)) {
+} {
+  @commonTitle(Messages("applicationToken"))
+
+  <table class="tokenTable">
+    <tr class="header">
+      <th class="token">@Messages("applicationToken")</th>
+      <th class="createdAt">@Messages("createdAt")</th>
+      <th></th>
+    </tr>
+    @list.map { token =>
+      <tr class="body">
+        <td class="token">@token.token</td>
+        <td class="createdAt">@dateTimeFormatter.format(token.createdAt.atZone(java.time.ZoneId.systemDefault()))</td>
+        <td class="action">
+          @form(action = CSRF(routes.ApplicationToken.remove(token.id.get.value)), 'id -> ("removeToken" + token.id.get.value)) {
+          }
+          <button onclick="removeToken(@token.id.get.value, @token.token);">
+            @Messages("remove")
+          </button>
+        </td>
+      </tr>
+    }
+  </table>
+
+  @form(action = CSRF(routes.ApplicationToken.create)) {
+    <input type="submit" value='@Messages("create", Messages("applicationToken"))'>
+  }
+
+  <div class="menuPanel">
+    <br>
+    <a class="backLink" href="@routes.HomeController.index">
+      @Messages("backTo", Messages("top"))
+    </a>
+  </div>
+
+  <div id="removeConfirm" title='@Messages("removeConfirmation", Messages("applicationToken"))' style="display:none;">
+    <div>@Messages("removeConfirmation", Messages("applicationToken"))</div>
+    <div id="tokenToRemove"></div>
+    <div id="removeAlert">@Messages("removeAlert")</div>
+  </div>
+  <script>
+    var removeToken = function(id, token) {
+      $("#tokenToRemove").text(token);
+      $("#removeConfirm").dialog({
+        height: "auto",
+        width: 400,
+        modal: true,
+        buttons: {
+          '@Messages("remove")': function() {
+            $('#removeToken' + id).submit();
+          },
+          '@Messages("cancel")': function() {
+            $(this).dialog("close");
+          }
+        }
+      });
+    };
+  </script>
+}

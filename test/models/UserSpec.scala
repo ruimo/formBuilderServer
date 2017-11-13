@@ -1,21 +1,34 @@
 package models
 
-import helpers.{PasswordHash, PasswordSalt}
+import helpers.{InjectorSupport, PasswordHash, PasswordSalt}
 import org.specs2.mutable._
-import play.api.db.Databases
-import play.api.test.Helpers
-import play.api.test.WithApplication
-import scalikejdbc.specs2.mutable.AutoRollback
-import scalikejdbc._
-import scalikejdbc.config._
+import play.api.test.Helpers._
+import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.Application
+import play.api.db.Database
 
-class UserSpec extends Specification {
+class UserSpec extends Specification with InjectorSupport {
   "User" should {
-    DBs.setup()
+    "Same user name should be avoided." in {
+      implicit val app: Application = GuiceApplicationBuilder().configure(inMemoryDatabase()).build()
 
-    "Can create new record." in new AutoRollback {
-        val user = User.create("user0001", "email", PasswordHash(123L), PasswordSalt(234L))
-        1 === 1
+      inject[Database].withConnection { implicit conn =>
+        User.create("testuser0001", "email", PasswordHash(123L), PasswordSalt(234L), UserRole.ADMIN)
+        ExceptionMapper.mapException {
+          User.create("testuser0001", "email2", PasswordHash(123L), PasswordSalt(234L), UserRole.ADMIN)
+        } must throwA[UniqueConstraintException]
+      }
+    }
+
+    "Same email should be avoided." in {
+      implicit val app: Application = GuiceApplicationBuilder().configure(inMemoryDatabase()).build()
+
+      inject[Database].withConnection { implicit conn =>
+        User.create("testuser0001", "email", PasswordHash(123L), PasswordSalt(234L), UserRole.ADMIN)
+        ExceptionMapper.mapException {
+          User.create("testuser0002", "email", PasswordHash(123L), PasswordSalt(234L), UserRole.ADMIN)
+        } must throwA[UniqueConstraintException]
+      }
     }
   }
 }

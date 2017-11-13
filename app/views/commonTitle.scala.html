@@ -1,0 +1,21 @@
+@(
+  title: String
+)(
+  implicit flash: play.api.mvc.Flash
+)
+
+@import helper._
+
+<div class="title">@title</div>
+
+@flash.get("errorMessage").map { message =>
+  <div class="globalError message">
+    @message
+  </div>
+}
+
+@flash.get("message").map { message =>
+  <div class="message info">
+    @message
+  </div>
+}

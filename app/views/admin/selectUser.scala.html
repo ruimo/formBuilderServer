@@ -1,0 +1,69 @@
+@(
+  users: PagedRecords[User]
+)(
+  implicit request: MessagesRequest[AnyContent],
+  flash: play.api.mvc.Flash,
+  login: LoginSession
+)
+
+@import helper._
+
+<!DOCTYPE html>
+<html>
+  <head>
+    @commonHeader()
+    <link rel="stylesheet" media="screen" href="@routes.Assets.versioned("stylesheets/main.css")">
+  </head>
+  <body style="background: white;">
+    <table class="userTable paged">
+      <tr class="header">
+        <th class="id">
+          @orderMark(
+            "id",
+            routes.ContractedUserMaintenance.selectUser,
+            "users.user_id", users
+          )
+        </th>
+        <th class="userName">
+          @orderMark(
+            Messages("userName"),
+            routes.ContractedUserMaintenance.selectUser,
+            "users.user_name", users
+          )
+        </th>
+        <th class="emil">
+          @orderMark(
+            Messages("email"),
+            routes.ContractedUserMaintenance.selectUser,
+            "users.email", users
+          )
+        </th>
+        <th></th>
+      </tr>
+      @users.records.map { user =>
+        <tr class="body">
+          <td class="id">@user.userId.get.value</td>
+          <td class="userName">@user.userName</td>
+          <td class="email">@user.email</td>
+          <td class="action">
+            <button type="button" style="float: left;" class="selectButton"
+                    onclick='window.parent.selectUser(@user.userId.get.value, "@user.userName");'>
+              @Messages("pick")
+            </button>
+          </td>
+        </tr>
+      }
+      <tr>
+        <td colspan="4">
+          <div class="pagingPanelCell">
+            @pagingPanel(
+              users,
+              routes.ContractedUserMaintenance.selectUser,
+              10, 25, 50
+            )
+          </div>
+        </td>
+      <tr>
+    </table>
+  </body>
+</html>

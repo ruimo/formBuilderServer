@@ -1,17 +1,17 @@
-@*
- * This template takes a single argument, a String containing a
- * message to display.
- *@
-@(message: String)
+@(
+)(
+  implicit flash: play.api.mvc.Flash,
+  request: MessagesRequest[AnyContent],
+  loginSession: Option[LoginSession]
+)
 
-@*
- * Call the `main` template with two arguments. The first
- * argument is a `String` with the title of the page, the second
- * argument is an `Html` object containing the body of the page.
- *@
-@main("Welcome to Play") {
-
-<form method="post" action="@routes.PrepareController.perform()">
-  <input type="submit">
-</form>
+@main("Welcome to Functional capture", loginSession) {
+} {
+  @loginSession.map { login =>
+    <a class="menuItem" href="@routes.Contracts.index()">
+      <div>
+        @Messages("currentContract")
+      </div>
+    </a>
+  }
 }

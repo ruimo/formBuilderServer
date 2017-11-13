@@ -1,0 +1,129 @@
+@(
+  page: Int, pageSize: Int, orderBy: OrderBy,
+  users: PagedRecords[User]
+)(
+  implicit request: MessagesRequest[AnyContent],
+  flash: play.api.mvc.Flash,
+  login: LoginSession
+)
+
+@import helper._
+
+@main(Messages("edit", Messages("user")), Some(login)) {
+} {
+  <div class="title">@Messages("edit", Messages("user"))</div>
+
+  @flash.get("errorMessage").map { message =>
+    <div class="globalErrorMessage">
+      @message
+    </div>
+  }
+
+  @flash.get("message").map { message =>
+    <div class="message">
+      @message
+    </div>
+  }
+
+  <table class="userTable paged">
+    <tr class="header">
+      <th class="id">
+        @orderMark(
+          "id",
+          routes.UserMaintenance.edit,
+          "users.user_id", users
+        )
+      </th>
+      <th class="name">
+        @orderMark(
+          Messages("userName"),
+          routes.UserMaintenance.edit,
+          "users.user_name", users
+        )
+      </th>
+      <th class="email">
+        @orderMark(
+          Messages("email"),
+          routes.UserMaintenance.edit,
+          "users.email", users
+        )
+      </th>
+      <th class="role">
+        @orderMark(
+          Messages("role"),
+          routes.UserMaintenance.edit,
+          "users.user_role", users
+        )
+      </th>
+      <th></th>
+    </tr>
+    @users.records.map { user =>
+      <tr class="userTableBody">
+        <td class="id">
+          <a href="@routes.UserMaintenance.modifyStart(user.userId.get.value)">
+            @user.userId.get.value
+          </a>
+        </td>
+        <td class="userName">@user.userName</td>
+        <td class="email">@user.email</td>
+        <td class="role">
+          @Messages("userRole." + user.userRole)
+        </td>
+        <td class="action">
+          @form(
+            action = CSRF(routes.UserMaintenance.delete(user.userId.get.value)),
+            'id -> ("deleteUser" + user.userId.get.value)
+          ) {
+          }
+          <button type="button" style="float: left;" class="deleteButton"
+                  onclick='deleteUser(@user.userId.get.value, "@user.userName");'>
+            @Messages("remove")
+          </button>
+        </td>
+      </tr>
+    }
+    <tr>
+      <td colspan="5">
+        <div class="pagingPanelCell">
+        @pagingPanel(
+          users,
+          routes.UserMaintenance.edit,
+          10, 25, 50
+        )
+        </div>
+      </td>
+    <tr>
+  </table>
+
+  <br>
+  <div class="menuPanel">
+    <a class="backLink" href="@routes.UserMaintenance.index()">
+      @Messages("backTo", Messages("maintenance", Messages("user")))
+    </a>
+
+    @admin.backToAdminTop()
+  </div>
+  <div id="deleteConfirm" title='@Messages("removeConfirmation", Messages("user"))' style="display:none;">
+    <div>@Messages("removeConfirmation", Messages("user"))</div>
+    <div id="userNameToDelete"></div>
+    <div id="removeAlert">@Messages("removeAlert")</div>
+  </div>
+  <script>
+    var deleteUser = function(id, userName) {
+      $("#userNameToDelete").text(userName);
+      $("#deleteConfirm").dialog({
+        height: "auto",
+        width: 400,
+        modal: true,
+        buttons: {
+          '@Messages("remove")': function() {
+            $('#deleteUser' + id).submit();
+          },
+          '@Messages("cancel")': function() {
+            $(this).dialog("close");
+          }
+        }
+      });
+    };
+  </script>
+}

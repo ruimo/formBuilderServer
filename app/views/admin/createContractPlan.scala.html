@@ -1,0 +1,10 @@
+@(
+  myForm: Form[CreateContractPlan],
+  submit: play.api.mvc.Call
+)(
+  implicit request: MessagesRequest[AnyContent],
+  flash: play.api.mvc.Flash,
+  login: LoginSession
+)
+
+@admin.changeContractPlan(myForm, Messages("create", Messages("contractPlan")), submit)

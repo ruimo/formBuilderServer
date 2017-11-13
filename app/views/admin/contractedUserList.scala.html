@@ -1,0 +1,123 @@
+@import java.time.format.DateTimeFormatter
+
+@(
+  contractedUsers: PagedRecords[(User, ContractPlan, ContractedUser)],
+  dateTimeFormatter: DateTimeFormatter
+)(
+  implicit request: MessagesRequest[AnyContent],
+  flash: play.api.mvc.Flash,
+  login: LoginSession
+)
+
+@import helper._
+
+<!DOCTYPE html>
+<html>
+  <head>
+    @commonHeader()
+    <link rel="stylesheet" media="screen" href="@routes.Assets.versioned("stylesheets/main.css")">
+  </head>
+  <body style="min-height: 15em;">
+    @if(contractedUsers.isEmpty) {
+      @Messages("recordEmpty", Messages("contractedUser"))
+    } else {
+      <table class="contractedUserTable paged">
+        <tr class="header">
+          <th class="planName">
+            @orderMark(
+              Messages("planName"),
+              routes.ContractedUserMaintenance.list,
+              "contract_plan.plan_name", contractedUsers
+            )
+          </th>
+          <th class="userName">
+            @orderMark(
+              Messages("userName"),
+              routes.ContractedUserMaintenance.list,
+              "users.user_name", contractedUsers
+            )
+          </th>
+          <th class="contractFrom">
+            @orderMark(
+              Messages("contractFrom"),
+              routes.ContractedUserMaintenance.list,
+              "contracted_user.contract_from", contractedUsers
+            )
+          </th>
+          <th class="contractTo">
+            @orderMark(
+              Messages("contractTo"),
+              routes.ContractedUserMaintenance.list,
+              "contracted_user.contract_to", contractedUsers
+            )
+          </th>
+          <th></th>
+        </tr>
+        @contractedUsers.records.map { cu =>
+          <tr class="body">
+            <td class="planName">
+              @cu._2.planName
+            </td>
+            <td class="userName">
+              @cu._1.userName
+            </td>
+            <td class="contractFrom">
+              @dateTimeFormatter.format(cu._3.contractFrom.atZone(java.time.ZoneId.systemDefault()))
+            </td>
+            <td class="contractTo">
+              @dateTimeFormatter.format(cu._3.contractTo.atZone(java.time.ZoneId.systemDefault()))
+            </td>
+            <td class="action">
+              @form(
+                action = CSRF(routes.ContractedUserMaintenance.delete(cu._3.contractPlanId.value, cu._3.userId.value)),
+                'id -> ("deleteContractedUser" + cu._3.contractPlanId.value + "_" + cu._3.userId.value)
+              ) {
+              }
+              <button type="button" style="float: left;" class="deleteButton"
+                      onclick='deleteContractedUser(@cu._3.contractPlanId.value, @cu._3.userId.value, "@cu._2.planName", "@cu._1.userName");'>
+                @Messages("remove")
+              </button>
+            </td>
+          </tr>
+        }
+        <tr>
+          <td colspan="5">
+            <div class="pagingPanelCell">
+              @pagingPanel(
+                contractedUsers,
+                routes.ContractedUserMaintenance.list,
+                10, 25, 50
+              )
+            </div>
+          </td>
+        <tr>
+      </table>
+    }
+    <div id="deleteConfirm" title='@Messages("removeConfirmation", Messages("contractedUser"))' style="display:none;">
+      <div>@Messages("removeConfirmation", Messages("contractPlan"))</div>
+      <div id="planNameToDelete"></div>
+      <div id="userNameToDelete"></div>
+      <div id="removeAlert">@Messages("removeAlert")</div>
+    </div>
+    <script>
+      var deleteContractedUser = function(planId, userId, planName, userName) {
+        $("#planNameToDelete").text(planName);
+        $("#userNameToDelete").text(userName);
+        $("#deleteConfirm").dialog({
+          height: "auto",
+          width: 400,
+          modal: true,
+          buttons: {
+            '@Messages("remove")': function() {
+              $('#deleteContractedUser' + planId + '_' + userId).submit();
+            },
+            '@Messages("cancel")': function() {
+              $(this).dialog("close");
+            }
+          }
+        });
+      };
+    </script>
+  </body>
+</html>
+
