@@ -102,7 +102,6 @@ class ConvertController @Inject()(
         val isAuthenticated: Boolean = db.withConnection { implicit conn =>
           isApplicationTokenValid((config \ "auth").as[JsObject])
         }
-
         println("isAuthenticated: " + isAuthenticated)
 
         if (isAuthenticated) {

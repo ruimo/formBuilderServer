@@ -1,5 +1,6 @@
 package controllers
 
+import java.nio.file.Path
 import javax.inject.{Inject, Singleton}
 
 import models.ApplicationTokenRepo
@@ -20,7 +21,30 @@ class FormConfigController @Inject()(
   implicit val applicationTokenRepo: ApplicationTokenRepo
 ) extends AbstractController(cc) with ApplicationTokenAware {
   def list = Action(parse.temporaryFile) { req: Request[TemporaryFile] =>
-    Ok("")
+    Logger.info("FormConfigController.list() called.")
+    PathUtil.withTempDir(None) { dir =>
+      val file: Path = req.body.path
+      Zip.explode(req.body.path, dir)
+      val config: JsValue = Json.parse(Files.readAllBytes(dir.resolve("config.json")))
+      println("config: " + config)
+
+      val isAuthenticated: Boolean = db.withConnection { implicit conn =>
+        isApplicationTokenValid((config \ "auth").as[JsObject])
+      }
+      println("isAuthenticated: " + isAuthenticated)
+
+      if (isAuthenticated) {
+        db.withConnection { implicit conn =>
+          Ok(
+            Json.obj(
+            )
+          )
+        }
+      }
+      else {
+        Forbidden("Application token does not match.")
+      }
+    }.get
   }
 
   def save = Action(parse.temporaryFile) { req: Request[TemporaryFile] =>
