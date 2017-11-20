@@ -52,7 +52,7 @@ class FormConfigController @Inject()(
     PathUtil.withTempDir(None) { dir =>
       Zip.explode(req.body.path, dir)
       val config: JsValue = Json.parse(Files.readAllBytes(dir.resolve("config.json")))
-
+println("*** config = " + config)
       Ok("")
     }.get
   }
